@@ -148,80 +148,80 @@ def play(args):
             camera_position = target_position + camera_offset
             env.set_camera(camera_position, target_position)
 
-        if i < stop_state_log:
-            logger.log_states(
-                {
-                    "dof_pos_target": actions[robot_index, joint_index].item()
-                    * env.cfg.control.action_scale
-                    + env.default_dof_pos[robot_index, joint_index].item(),
-                    "dof_pos": env.dof_pos[robot_index, joint_index].item(),
-                    "dof_vel": env.dof_vel[robot_index, joint_index].item(),
-                    "dof_torque": env.torques[robot_index, joint_index].item(),
-                    "command_yaw": env.commands[robot_index, 1].item(),
-                    "command_height": env.commands[robot_index, 2].item(),
-                    "base_height": env.base_height[robot_index].item(),
-                    "base_vel_x": env.base_lin_vel[robot_index, 0].item(),
-                    "base_vel_y": env.base_lin_vel[robot_index, 1].item(),
-                    "base_vel_z": env.base_lin_vel[robot_index, 2].item(),
-                    "base_vel_yaw": env.base_ang_vel[robot_index, 2].item(),
-                    "contact_forces_z": env.contact_forces[
-                        robot_index, env.feet_indices, 2
-                    ]
-                    .cpu()
-                    .numpy(),
-                }
-            )
-            if CoM_offset_compensate:
-                logger.log_states({"command_x": vel_cmd[robot_index].item()})
-            else:
-                logger.log_states({"command_x": env.commands[robot_index, 0].item()})
-            if latent is not None:
-                logger.log_states(
-                    {
-                        "est_lin_vel_x": latent[robot_index, 0].item()
-                        / env.cfg.normalization.obs_scales.lin_vel,
-                        "est_lin_vel_y": latent[robot_index, 1].item()
-                        / env.cfg.normalization.obs_scales.lin_vel,
-                        "est_lin_vel_z": latent[robot_index, 2].item()
-                        / env.cfg.normalization.obs_scales.lin_vel,
-                    }
-                )
-                if latent.shape[1] > 3 and env_cfg.noise.add_noise:
-                    logger.log_states(
-                        {
-                            "base_vel_yaw_obs": obs[robot_index, 2].item()
-                            / env.cfg.normalization.obs_scales.ang_vel,
-                            "dof_pos_obs": obs[robot_index, 9 + joint_index].item()
-                            / env.cfg.normalization.obs_scales.dof_pos
-                            + env.default_dof_pos[robot_index, joint_index].item(),
-                            "dof_vel_obs": obs[robot_index, 15 + joint_index].item()
-                            / env.cfg.normalization.obs_scales.dof_vel,
-                        }
-                    )
-                    logger.log_states(
-                        {
-                            "base_vel_yaw_est": latent[robot_index, 3 + 2].item()
-                            / env.cfg.normalization.obs_scales.ang_vel,
-                            "dof_pos_est": latent[
-                                robot_index, 3 + 9 + joint_index
-                            ].item()
-                            / env.cfg.normalization.obs_scales.dof_pos
-                            + env.default_dof_pos[robot_index, joint_index].item(),
-                            "dof_vel_est": latent[
-                                robot_index, 3 + 15 + joint_index
-                            ].item()
-                            / env.cfg.normalization.obs_scales.dof_vel,
-                        }
-                    )
-        elif i == stop_state_log:
-            logger.plot_states()
-        if 0 < i < stop_rew_log:
-            if infos["episode"]:
-                num_episodes = torch.sum(env.reset_buf).item()
-                if num_episodes > 0:
-                    logger.log_rewards(infos["episode"], num_episodes)
-        elif i == stop_rew_log:
-            logger.print_rewards()
+        # if i < stop_state_log:
+        #     logger.log_states(
+        #         {
+        #             "dof_pos_target": actions[robot_index, joint_index].item()
+        #             * env.cfg.control.action_scale
+        #             + env.default_dof_pos[robot_index, joint_index].item(),
+        #             "dof_pos": env.dof_pos[robot_index, joint_index].item(),
+        #             "dof_vel": env.dof_vel[robot_index, joint_index].item(),
+        #             "dof_torque": env.torques[robot_index, joint_index].item(),
+        #             "command_yaw": env.commands[robot_index, 1].item(),
+        #             "command_height": env.commands[robot_index, 2].item(),
+        #             "base_height": env.base_height[robot_index].item(),
+        #             "base_vel_x": env.base_lin_vel[robot_index, 0].item(),
+        #             "base_vel_y": env.base_lin_vel[robot_index, 1].item(),
+        #             "base_vel_z": env.base_lin_vel[robot_index, 2].item(),
+        #             "base_vel_yaw": env.base_ang_vel[robot_index, 2].item(),
+        #             "contact_forces_z": env.contact_forces[
+        #                 robot_index, env.feet_indices, 2
+        #             ]
+        #             .cpu()
+        #             .numpy(),
+        #         }
+        #     )
+        #     if CoM_offset_compensate:
+        #         logger.log_states({"command_x": vel_cmd[robot_index].item()})
+        #     else:
+        #         logger.log_states({"command_x": env.commands[robot_index, 0].item()})
+        #     if latent is not None:
+        #         logger.log_states(
+        #             {
+        #                 "est_lin_vel_x": latent[robot_index, 0].item()
+        #                 / env.cfg.normalization.obs_scales.lin_vel,
+        #                 "est_lin_vel_y": latent[robot_index, 1].item()
+        #                 / env.cfg.normalization.obs_scales.lin_vel,
+        #                 "est_lin_vel_z": latent[robot_index, 2].item()
+        #                 / env.cfg.normalization.obs_scales.lin_vel,
+        #             }
+        #         )
+        #         if latent.shape[1] > 3 and env_cfg.noise.add_noise:
+        #             logger.log_states(
+        #                 {
+        #                     "base_vel_yaw_obs": obs[robot_index, 2].item()
+        #                     / env.cfg.normalization.obs_scales.ang_vel,
+        #                     "dof_pos_obs": obs[robot_index, 9 + joint_index].item()
+        #                     / env.cfg.normalization.obs_scales.dof_pos
+        #                     + env.default_dof_pos[robot_index, joint_index].item(),
+        #                     "dof_vel_obs": obs[robot_index, 15 + joint_index].item()
+        #                     / env.cfg.normalization.obs_scales.dof_vel,
+        #                 }
+        #             )
+        #             logger.log_states(
+        #                 {
+        #                     "base_vel_yaw_est": latent[robot_index, 3 + 2].item()
+        #                     / env.cfg.normalization.obs_scales.ang_vel,
+        #                     "dof_pos_est": latent[
+        #                         robot_index, 3 + 9 + joint_index
+        #                     ].item()
+        #                     / env.cfg.normalization.obs_scales.dof_pos
+        #                     + env.default_dof_pos[robot_index, joint_index].item(),
+        #                     "dof_vel_est": latent[
+        #                         robot_index, 3 + 15 + joint_index
+        #                     ].item()
+        #                     / env.cfg.normalization.obs_scales.dof_vel,
+        #                 }
+        #             )
+        # elif i == stop_state_log:
+        #     logger.plot_states()
+        # if 0 < i < stop_rew_log:
+        #     if infos["episode"]:
+        #         num_episodes = torch.sum(env.reset_buf).item()
+        #         if num_episodes > 0:
+        #             logger.log_rewards(infos["episode"], num_episodes)
+        # elif i == stop_rew_log:
+        #     logger.print_rewards()
 
 
 if __name__ == "__main__":

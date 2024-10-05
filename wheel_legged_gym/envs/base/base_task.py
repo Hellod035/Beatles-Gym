@@ -220,10 +220,10 @@ class BaseTask:
                         self.commands[self.lookat_id, 0] -= 0.1
                         self.commands[self.lookat_id, 0] = torch.clip(self.commands[self.lookat_id, 0], self.command_ranges["lin_vel_x"][self.lookat_id, 0], self.command_ranges["lin_vel_x"][self.lookat_id, 1])
                     if evt.action == "left_turn" and evt.value > 0:
-                        self.commands[self.lookat_id, 3] -= 0.25
+                        self.commands[self.lookat_id, 3] += 0.25
                         self.commands[self.lookat_id, 3] = torch.clip(self.commands[self.lookat_id, 3], self.command_ranges["heading"][0], self.command_ranges["heading"][1])   
                     if evt.action == "right_turn" and evt.value > 0:
-                        self.commands[self.lookat_id, 3] += 0.25
+                        self.commands[self.lookat_id, 3] -= 0.25
                         self.commands[self.lookat_id, 3] = torch.clip(self.commands[self.lookat_id, 3], self.command_ranges["heading"][0], self.command_ranges["heading"][1])
                     if evt.action == "height_plus" and evt.value > 0:
                         self.commands[self.lookat_id, 2] += 0.025

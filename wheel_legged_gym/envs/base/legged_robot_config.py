@@ -98,7 +98,7 @@ class LeggedRobotCfg(BaseConfig):
         class ranges:
             lin_vel_x = [-1.5, 1.5]  # min max [m/s]
             ang_vel_yaw = [-3.14, 3.14]  # min max [rad/s]
-            height = [0.25, 0.50]
+            height = [0.25, 0.55]
             heading = [-3.14, 3.14]
 
     class init_state:
@@ -178,7 +178,7 @@ class LeggedRobotCfg(BaseConfig):
             tracking_lin_vel_enhance = 1
             tracking_ang_vel = 1.0
 
-            base_height = 1.0
+            base_height = 1.5
             # nominal_state = -0.1
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
