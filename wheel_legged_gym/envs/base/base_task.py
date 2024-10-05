@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
-#
+# 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
@@ -33,7 +33,8 @@ from isaacgym import gymapi
 from isaacgym import gymutil
 import numpy as np
 import torch
-
+import time
+from wheel_legged_gym.utils.math import euler_from_quat
 
 # Base class for RL tasks
 class BaseTask:
@@ -117,13 +118,42 @@ class BaseTask:
         # if running with a viewer, set up keyboard shortcuts and camera
         if self.headless == False:
             # subscribe to keyboard shortcuts
-            self.viewer = self.gym.create_viewer(self.sim, gymapi.CameraProperties())
+            self.viewer = self.gym.create_viewer(
+                self.sim, gymapi.CameraProperties())
             self.gym.subscribe_viewer_keyboard_event(
-                self.viewer, gymapi.KEY_ESCAPE, "QUIT"
-            )
+                self.viewer, gymapi.KEY_ESCAPE, "QUIT")
             self.gym.subscribe_viewer_keyboard_event(
-                self.viewer, gymapi.KEY_V, "toggle_viewer_sync"
-            )
+                self.viewer, gymapi.KEY_V, "toggle_viewer_sync")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_F, "free_cam")
+            for i in range(9):
+                self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, getattr(gymapi, "KEY_"+str(i)), "lookat"+str(i))
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_LEFT_BRACKET, "prev_id")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_RIGHT_BRACKET, "next_id")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_SPACE, "pause")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_W, "vx_plus")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_S, "vx_minus")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_A, "left_turn")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_D, "right_turn")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_Z, "height_plus")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_X, "height_minus")
+
+        # free camera
+        self.free_cam = False
+        self.lookat_id = 0
+        self.lookat_vec = torch.tensor([-0, 2, 1], requires_grad=False, device=self.device)
+        self.button_pressed = False
+
 
     def get_observations(self):
         return (
@@ -139,7 +169,7 @@ class BaseTask:
         raise NotImplementedError
 
     def reset(self):
-        """Reset all robots"""
+        """ Reset all robots"""
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
         obs, privileged_obs, _, _, _, _ = self.step(
             torch.zeros(
@@ -150,22 +180,80 @@ class BaseTask:
 
     def step(self, actions):
         raise NotImplementedError
+    
+    def lookat(self, i):
+        look_at_pos = self.root_states[i, :3].clone()
+        cam_pos = look_at_pos + self.lookat_vec
+        self.set_camera(cam_pos, look_at_pos)
 
     def render(self, sync_frame_time=True):
         if self.viewer:
             # check for window closed
             if self.gym.query_viewer_has_closed(self.viewer):
                 sys.exit()
+            if not self.free_cam:
+                self.lookat(self.lookat_id)
 
             # check for keyboard events
+            evt_count = 0
             for evt in self.gym.query_viewer_action_events(self.viewer):
                 if evt.action == "QUIT" and evt.value > 0:
                     sys.exit()
                 elif evt.action == "toggle_viewer_sync" and evt.value > 0:
                     self.enable_viewer_sync = not self.enable_viewer_sync
 
+                if not self.free_cam:
+                    for i in range(9):
+                        if evt.action == "lookat" + str(i) and evt.value > 0:
+                            self.lookat(i)
+                            self.lookat_id = i
+                    if evt.action == "prev_id" and evt.value > 0:
+                        self.lookat_id  = (self.lookat_id-1) % self.num_envs
+                        self.lookat(self.lookat_id)
+                    if evt.action == "next_id" and evt.value > 0:
+                        self.lookat_id  = (self.lookat_id+1) % self.num_envs
+                        self.lookat(self.lookat_id)
+                    if evt.action == "vx_plus" and evt.value > 0:
+                        self.commands[self.lookat_id, 0] += 0.1
+                        self.commands[self.lookat_id, 0] = torch.clip(self.commands[self.lookat_id, 0], self.command_ranges["lin_vel_x"][self.lookat_id, 0], self.command_ranges["lin_vel_x"][self.lookat_id, 1])
+                    if evt.action == "vx_minus" and evt.value > 0:
+                        self.commands[self.lookat_id, 0] -= 0.1
+                        self.commands[self.lookat_id, 0] = torch.clip(self.commands[self.lookat_id, 0], self.command_ranges["lin_vel_x"][self.lookat_id, 0], self.command_ranges["lin_vel_x"][self.lookat_id, 1])
+                    if evt.action == "left_turn" and evt.value > 0:
+                        self.commands[self.lookat_id, 3] -= 0.25
+                        self.commands[self.lookat_id, 3] = torch.clip(self.commands[self.lookat_id, 3], self.command_ranges["heading"][0], self.command_ranges["heading"][1])   
+                    if evt.action == "right_turn" and evt.value > 0:
+                        self.commands[self.lookat_id, 3] += 0.25
+                        self.commands[self.lookat_id, 3] = torch.clip(self.commands[self.lookat_id, 3], self.command_ranges["heading"][0], self.command_ranges["heading"][1])
+                    if evt.action == "height_plus" and evt.value > 0:
+                        self.commands[self.lookat_id, 2] += 0.025
+                        self.commands[self.lookat_id, 2] = torch.clip(self.commands[self.lookat_id, 2], self.command_ranges["height"][self.lookat_id, 0], self.command_ranges["height"][self.lookat_id, 1])
+                    if evt.action == "height_minus" and evt.value > 0:
+                        self.commands[self.lookat_id, 2] -= 0.025
+                        self.commands[self.lookat_id, 2] = torch.clip(self.commands[self.lookat_id, 2], self.command_ranges["height"][self.lookat_id, 0], self.command_ranges["height"][self.lookat_id, 1])
+
+                if evt.action == "free_cam" and evt.value > 0:
+                    self.free_cam = not self.free_cam
+                    if self.free_cam:
+                        self.set_camera(self.cfg.viewer.pos, self.cfg.viewer.lookat)
+
+                if evt.action == "pause" and evt.value > 0:
+                    self.pause = True
+                    while self.pause:
+                        time.sleep(0.1)
+                        self.gym.draw_viewer(self.viewer, self.sim, True)
+                        for evt in self.gym.query_viewer_action_events(self.viewer):
+                            if evt.action == "pause" and evt.value > 0:
+                                self.pause = False
+                        if self.gym.query_viewer_has_closed(self.viewer):
+                            sys.exit()
+                if evt.value > 0:
+                    evt_count += 1
+            self.button_pressed = True if evt_count > 0 else False
+
+
             # fetch results
-            if self.device != "cpu":
+            if self.device != 'cpu':
                 self.gym.fetch_results(self.sim, True)
 
             # step graphics
@@ -176,3 +264,23 @@ class BaseTask:
                     self.gym.sync_frame_time(self.sim)
             else:
                 self.gym.poll_viewer_events(self.viewer)
+
+            if not self.free_cam:
+                p = self.gym.get_viewer_camera_transform(self.viewer, None).p
+                cam_trans = torch.tensor([p.x, p.y, p.z], requires_grad=False, device=self.device)
+                look_at_pos = self.root_states[self.lookat_id, :3].clone()
+                self.lookat_vec = cam_trans - look_at_pos
+                
+        if self.headless == False:
+            print('command vx',self.commands[self.lookat_id, 0].item(), 'command heading', self.commands[self.lookat_id, 3].item())
+            ori = self.get_body_orientation(return_yaw=True)
+            print('base_lin_vel_x', self.base_lin_vel[self.lookat_id, 0].item(), 'base_heading', ori[self.lookat_id, 2].item())
+            print('command height', self.commands[self.lookat_id, 2].item(), 'base_height', self.root_states[self.lookat_id, 2].item())
+            # print('dof_pos', self.dof_pos)
+
+    def get_body_orientation(self, return_yaw=False):
+        r, p, y = euler_from_quat(self.base_quat)
+        if return_yaw:
+            return torch.stack([r, p, y], dim=-1)
+        else:
+            return torch.stack([r, p], dim=-1)

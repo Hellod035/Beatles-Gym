@@ -167,26 +167,26 @@ class LeggedRobot(BaseTask):
         )
         self.dof_acc = (self.last_dof_vel - self.dof_vel) / self.dt
 
-        theta1 = torch.cat(
-            (self.dof_pos[:, 0].unsqueeze(1), -self.dof_pos[:, 3].unsqueeze(1)), dim=1
-        )
-        theta2 = torch.cat(
-            (
-                (self.dof_pos[:, 1] + self.pi / 2).unsqueeze(1),
-                (-self.dof_pos[:, 4] + self.pi / 2).unsqueeze(1),
-            ),
-            dim=1,
-        )
-        end_x = (
-            self.cfg.asset.offset
-            + self.cfg.asset.l1 * torch.cos(theta1)
-            + self.cfg.asset.l2 * torch.cos(theta1 + theta2)
-        )
-        end_y = self.cfg.asset.l1 * torch.sin(theta1) + self.cfg.asset.l2 * torch.sin(
-            theta1 + theta2
-        )
-        self.L0 = torch.sqrt(end_x**2 + end_y**2)
-        self.theta0 = torch.arctan2(end_y, end_x) - self.pi / 2
+        # theta1 = torch.cat(
+        #     (self.dof_pos[:, 0].unsqueeze(1), -self.dof_pos[:, 3].unsqueeze(1)), dim=1
+        # )
+        # theta2 = torch.cat(
+        #     (
+        #         (self.dof_pos[:, 1] + self.pi / 2).unsqueeze(1),
+        #         (-self.dof_pos[:, 4] + self.pi / 2).unsqueeze(1),
+        #     ),
+        #     dim=1,
+        # )
+        # end_x = (
+        #     self.cfg.asset.offset
+        #     + self.cfg.asset.l1 * torch.cos(theta1)
+        #     + self.cfg.asset.l2 * torch.cos(theta1 + theta2)
+        # )
+        # end_y = self.cfg.asset.l1 * torch.sin(theta1) + self.cfg.asset.l2 * torch.sin(
+        #     theta1 + theta2
+        # )
+        # self.L0 = torch.sqrt(end_x**2 + end_y**2)
+        # self.theta0 = torch.arctan2(end_y, end_x) - self.pi / 2
 
         self._post_physics_step_callback()
 
@@ -208,16 +208,13 @@ class LeggedRobot(BaseTask):
 
     def check_termination(self):
         """Check if environments need to be reset"""
-        fail_buf = torch.any(
-            torch.norm(
+        self.fail_buf = torch.any(
+            torch.any(
                 self.contact_forces[:, self.termination_contact_indices, :], dim=-1
             )
-            > 10.0,
+            > 0.1,
             dim=1,
         )
-        fail_buf |= self.projected_gravity[:, 2] > -0.1
-        self.fail_buf *= fail_buf
-        self.fail_buf += fail_buf
         self.time_out_buf = (
             self.episode_length_buf > self.max_episode_length
         )  # no terminal reward for time-outs
@@ -226,11 +223,7 @@ class LeggedRobot(BaseTask):
             self.edge_reset_buf |= self.base_position[:, 0] < self.terrain_x_min + 1
             self.edge_reset_buf |= self.base_position[:, 1] > self.terrain_y_max - 1
             self.edge_reset_buf |= self.base_position[:, 1] < self.terrain_y_min + 1
-        self.reset_buf = (
-            (self.fail_buf > self.cfg.env.fail_to_terminal_time_s / self.dt)
-            | self.time_out_buf
-            | self.edge_reset_buf
-        )
+        self.reset_buf = (self.fail_buf | self.time_out_buf | self.edge_reset_buf)
 
     def reset_idx(self, env_ids):
         """Reset some environments.
@@ -992,7 +985,7 @@ class LeggedRobot(BaseTask):
         self.last_root_vel = torch.zeros_like(self.root_states[:, 7:13])
         self.commands = torch.zeros(
             self.num_envs,
-            self.cfg.commands.num_commands + 1,
+            self.cfg.commands.num_commands,
             dtype=torch.float,
             device=self.device,
             requires_grad=False,
@@ -1794,13 +1787,13 @@ class LeggedRobot(BaseTask):
             torch.norm(self.commands[:, :2], dim=1) < 0.1
         )
 
-    def _reward_nominal_state(self):
-        # return torch.square(self.theta0[:, 0] - self.theta0[:, 1])
-        if self.reward_scales["nominal_state"] < 0:
-            return torch.square(self.theta0[:, 0] - self.theta0[:, 1])
-        else:
-            ang_diff = torch.square(self.theta0[:, 0] - self.theta0[:, 1])
-            return torch.exp(-ang_diff / 0.1)
+    # def _reward_nominal_state(self):
+    #     # return torch.square(self.theta0[:, 0] - self.theta0[:, 1])
+    #     if self.reward_scales["nominal_state"] < 0:
+    #         return torch.square(self.theta0[:, 0] - self.theta0[:, 1])
+    #     else:
+    #         ang_diff = torch.square(self.theta0[:, 0] - self.theta0[:, 1])
+    #         return torch.exp(-ang_diff / 0.1)
 
     def _reward_feet_contact_forces(self):
         # penalize high contact forces

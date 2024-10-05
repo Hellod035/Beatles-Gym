@@ -52,7 +52,7 @@ class LeggedRobotCfg(BaseConfig):
         horizontal_scale = 0.1  # [m]
         vertical_scale = 0.005  # [m]
         border_size = 25  # [m]
-        curriculum = True
+        curriculum = False
         static_friction = 0.5
         dynamic_friction = 0.5
         restitution = 0.5
@@ -72,7 +72,7 @@ class LeggedRobotCfg(BaseConfig):
             0.5,
         ]  # 1mx1.6m rectangle (without center line)
         measured_points_y = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3]
-        selected = False  # select a unique terrain type and pass all arguments
+        selected = True  # select a unique terrain type and pass all arguments
         terrain_kwargs = None  # Dict of arguments for selected terrain
         max_init_terrain_level = 5  # starting curriculum state
         terrain_length = 8.0
@@ -91,14 +91,14 @@ class LeggedRobotCfg(BaseConfig):
         basic_max_curriculum = 2.5
         advanced_max_curriculum = 1.5
         curriculum_threshold = 0.7
-        num_commands = 3  # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
+        num_commands = 4  # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 5.0  # time before command are changed[s]
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            lin_vel_x = [-1.0, 1.0]  # min max [m/s]
+            lin_vel_x = [-1.5, 1.5]  # min max [m/s]
             ang_vel_yaw = [-3.14, 3.14]  # min max [rad/s]
-            height = [0.1, 0.25]
+            height = [0.25, 0.50]
             heading = [-3.14, 3.14]
 
     class init_state:
@@ -136,9 +136,7 @@ class LeggedRobotCfg(BaseConfig):
         default_dof_drive_mode = 3  # see GymDofDriveModeFlags (0 is none, 1 is pos tgt, 2 is vel tgt, 3 effort)
         self_collisions = 0  # 1 to disable, 0 to enable...bitwise filter
         replace_cylinder_with_capsule = True  # replace collision cylinders with capsules, leads to faster/more stable simulation
-        flip_visual_attachments = (
-            True  # Some .obj meshes must be flipped from y-up to z-up
-        )
+        flip_visual_attachments = False
 
         density = 0.001
         angular_damping = 0.0
@@ -175,12 +173,13 @@ class LeggedRobotCfg(BaseConfig):
 
     class rewards:
         class scales:
+            termination = -200
             tracking_lin_vel = 1.0
             tracking_lin_vel_enhance = 1
             tracking_ang_vel = 1.0
 
             base_height = 1.0
-            nominal_state = -0.1
+            # nominal_state = -0.1
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
             orientation = -10.0
@@ -202,7 +201,7 @@ class LeggedRobotCfg(BaseConfig):
         )
         soft_dof_vel_limit = 1.0
         soft_torque_limit = 1.0
-        base_height_target = 0.18
+        # base_height_target = 0.45
         max_contact_force = 100.0  # forces above this value are penalized
 
     class normalization:

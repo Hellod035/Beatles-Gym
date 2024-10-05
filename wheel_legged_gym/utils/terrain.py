@@ -100,7 +100,7 @@ class Terrain:
                 self.add_terrain_to_map(terrain, i, j)
 
     def selected_terrain(self):
-        terrain_type = self.cfg.terrain_kwargs.pop("type")
+        # terrain_type = self.cfg.terrain_kwargs.pop("type")
         for k in range(self.cfg.num_sub_terrains):
             # Env coordinates in the world
             (i, j) = np.unravel_index(k, (self.cfg.num_rows, self.cfg.num_cols))
@@ -109,11 +109,11 @@ class Terrain:
                 "terrain",
                 width=self.width_per_env_pixels,
                 length=self.width_per_env_pixels,
-                vertical_scale=self.vertical_scale,
-                horizontal_scale=self.horizontal_scale,
+                vertical_scale=self.cfg.vertical_scale,
+                horizontal_scale=self.cfg.horizontal_scale,
             )
 
-            eval(terrain_type)(terrain, **self.cfg.terrain_kwargs.terrain_kwargs)
+            terrain_utils.random_uniform_terrain(terrain, min_height=0.01, max_height=0.05, step=0.02)
             self.add_terrain_to_map(terrain, i, j)
 
     def make_terrain(self, choice, difficulty):
