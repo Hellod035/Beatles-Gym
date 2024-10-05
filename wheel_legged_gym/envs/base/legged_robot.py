@@ -218,7 +218,12 @@ class LeggedRobot(BaseTask):
         self.time_out_buf = (
             self.episode_length_buf > self.max_episode_length
         )  # no terminal reward for time-outs
-        self.reset_buf = self.fail_buf | self.time_out_buf
+        if self.cfg.terrain.mesh_type in ["heightfield", "trimesh"]:
+            self.edge_reset_buf = self.base_position[:, 0] > self.terrain_x_max - 1
+            self.edge_reset_buf |= self.base_position[:, 0] < self.terrain_x_min + 1
+            self.edge_reset_buf |= self.base_position[:, 1] > self.terrain_y_max - 1
+            self.edge_reset_buf |= self.base_position[:, 1] < self.terrain_y_min + 1
+        self.reset_buf = (self.fail_buf | self.time_out_buf | self.edge_reset_buf)
 
     def reset_idx(self, env_ids):
         """Reset some environments.

@@ -64,6 +64,7 @@ def play(args):
     env_cfg.domain_rand.randomize_default_dof_pos = False
     env_cfg.domain_rand.randomize_action_delay = False
     env_cfg.commands.resampling_time = 9999
+    env_cfg.env.episode_length_s = 9999
 
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
