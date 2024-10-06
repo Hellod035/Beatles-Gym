@@ -30,17 +30,9 @@
 
 from wheel_legged_gym import WHEEL_LEGGED_GYM_ROOT_DIR, WHEEL_LEGGED_GYM_ENVS_DIR
 from .base.legged_robot import LeggedRobot
+from .base.legged_robot_rough import LeggedRobotRough
 from .wheel_legged.wheel_legged_config import WheelLeggedCfg, WheelLeggedCfgPPO
-from .wheel_legged_vmc.wheel_legged_vmc import LeggedRobotVMC
-from .wheel_legged_vmc.wheel_legged_vmc_config import (
-    WheelLeggedVMCCfg,
-    WheelLeggedVMCCfgPPO,
-)
-from .wheel_legged_vmc_flat.wheel_legged_vmc_flat_config import (
-    WheelLeggedVMCFlatCfg,
-    WheelLeggedVMCFlatCfgPPO,
-)
-
+from .wheel_legged_rough.wheel_legged_rough_config import WheelLeggedRoughCfg, WheelLeggedRoughCfgPPO
 
 import os
 
@@ -49,12 +41,7 @@ from wheel_legged_gym.utils.task_registry import task_registry
 task_registry.register(
     "wheel_legged", LeggedRobot, WheelLeggedCfg(), WheelLeggedCfgPPO()
 )
+
 task_registry.register(
-    "wheel_legged_vmc", LeggedRobotVMC, WheelLeggedVMCCfg(), WheelLeggedVMCCfgPPO()
-)
-task_registry.register(
-    "wheel_legged_vmc_flat",
-    LeggedRobotVMC,
-    WheelLeggedVMCFlatCfg(),
-    WheelLeggedVMCFlatCfgPPO(),
+    "wheel_legged_rough", LeggedRobotRough, WheelLeggedRoughCfg(), WheelLeggedRoughCfgPPO()
 )
