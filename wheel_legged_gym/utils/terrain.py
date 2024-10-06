@@ -122,7 +122,7 @@ class Terrain:
 
             choice = np.random.uniform(0, 1)
             difficulty = 0.05
-            slope = difficulty * 0.5
+            slope = difficulty * 5
             terrain = self.make_terrain(choice, difficulty,slope)
             self.add_terrain_to_map(terrain, i, j)
 
