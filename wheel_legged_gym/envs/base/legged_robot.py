@@ -1071,7 +1071,7 @@ class LeggedRobot(BaseTask):
         )
         if self.cfg.terrain.measure_heights:
             self.height_points = self._init_height_points()
-        self.measured_heights = 0
+        self.measured_heights = torch.zeros(self.num_envs, self.num_height_points, dtype=torch.float, device=self.device, requires_grad=False)
         self.base_height = torch.mean(
             self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1
         )

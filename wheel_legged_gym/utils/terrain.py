@@ -87,7 +87,8 @@ class Terrain:
 
             choice = np.random.uniform(0, 1)
             difficulty = np.random.choice([0.5, 0.75, 0.9])
-            terrain = self.make_terrain(choice, difficulty)
+            slope = difficulty * 0.5
+            terrain = self.make_terrain(choice, difficulty,slope)
             self.add_terrain_to_map(terrain, i, j)
 
     def curiculum(self):
@@ -95,28 +96,37 @@ class Terrain:
             for i in range(self.cfg.num_rows):
                 difficulty = i / self.cfg.num_rows
                 choice = j / self.cfg.num_cols + 0.001
-
-                terrain = self.make_terrain(choice, difficulty)
+                slope = difficulty * 0.5
+                terrain = self.make_terrain(choice, difficulty,slope)
                 self.add_terrain_to_map(terrain, i, j)
 
     def selected_terrain(self):
         # terrain_type = self.cfg.terrain_kwargs.pop("type")
+        # for k in range(self.cfg.num_sub_terrains):
+        #     # Env coordinates in the world
+        #     (i, j) = np.unravel_index(k, (self.cfg.num_rows, self.cfg.num_cols))
+
+        #     terrain = terrain_utils.SubTerrain(
+        #         "terrain",
+        #         width=self.width_per_env_pixels,
+        #         length=self.width_per_env_pixels,
+        #         vertical_scale=self.cfg.vertical_scale,
+        #         horizontal_scale=self.cfg.horizontal_scale,
+        #     )
+
+        #     terrain_utils.random_uniform_terrain(terrain, min_height=0.01, max_height=0.05, step=0.02)
+        #     self.add_terrain_to_map(terrain, i, j)
         for k in range(self.cfg.num_sub_terrains):
             # Env coordinates in the world
             (i, j) = np.unravel_index(k, (self.cfg.num_rows, self.cfg.num_cols))
 
-            terrain = terrain_utils.SubTerrain(
-                "terrain",
-                width=self.width_per_env_pixels,
-                length=self.width_per_env_pixels,
-                vertical_scale=self.cfg.vertical_scale,
-                horizontal_scale=self.cfg.horizontal_scale,
-            )
-
-            terrain_utils.random_uniform_terrain(terrain, min_height=0.01, max_height=0.05, step=0.02)
+            choice = np.random.uniform(0, 1)
+            difficulty = 0.05
+            slope = difficulty * 0.5
+            terrain = self.make_terrain(choice, difficulty,slope)
             self.add_terrain_to_map(terrain, i, j)
 
-    def make_terrain(self, choice, difficulty):
+    def make_terrain(self, choice, difficulty, slope):
         terrain = terrain_utils.SubTerrain(
             "terrain",
             width=self.width_per_env_pixels,
@@ -124,7 +134,6 @@ class Terrain:
             vertical_scale=self.cfg.vertical_scale,
             horizontal_scale=self.cfg.horizontal_scale,
         )
-        slope = difficulty * 0.5
         random_height = 0.05 + difficulty * 0.05
         step_height = 0.05 + 0.18 * difficulty
         discrete_obstacles_height = 0.05 + difficulty * 0.1
